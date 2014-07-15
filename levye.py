@@ -1,19 +1,22 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 try:
-	import sys
 	import os
+	import re
+	import sys
+	import shlex
+	import signal
 	import paramiko
 	import argparse
-	import subprocess
-	import signal
 	import tempfile
+	import subprocess
 	from lib.threadpool import ThreadPool
 	from lib.iprange import IpRange
 except ImportError,e:
         import sys
         sys.stdout.write("%s\n" %e)
         sys.exit(1)
+
 
 
 class AddressAction(argparse.Action):
@@ -44,6 +47,8 @@ class Levye:
 		
 		self.services = {"sshkey":self.sshkey,"rpd":self.rdp, "openvpn":self.openvpn, "vnckey":self.vnckey}
 		self.openvpn_path = "/usr/sbin/openvpn"		
+		self.vpn_failure = re.compile("SIGTERM\[soft,auth-failure\] received, process exiting")
+		self.vpn_success = re.compile("Initialization Sequence Completed")
 
 		description = "Description ..."
                 usage = "Usage: use --help for futher information"
@@ -67,40 +72,46 @@ class Levye:
 			print >> sys.stderr, err
 			sys.exit(1)	
 
-
-		if self.args.server:
-			self.ip_list = []
-			try:
-				iprange = IpRange()
-				for ip in iprange.iprange(self.args.server):
-					self.ip_list.append(ip)
-			except:
-				print >> sys.stderr, "Not Valid Ip Address !!!"
-				sys.exit(1)
+			
+		if not self.args.brute in self.services.keys():
+                        print >> sys.stderr, "%s is not valid service. Please use one of %s "% (self.args.brute, self.services.keys())
+                        sys.exit(1)
+	
+		
+		self.ip_list = []
+		try:
+			iprange = IpRange()
+			for ip in iprange.iprange(self.args.server):
+				self.ip_list.append(ip)
+		except:
+			print >> sys.stderr, "Not Valid Ip Address !!!"
+			sys.exit(1)
 	
 
 
 	def signal_handler(self, signal, frame):
-        	print('You pressed Ctrl+C!')
-        	sys.exit(0)	
+        	print('Exiting ...')
+        	sys.exit(37)	
 
 
 	def rdp(self, *options):
 		pass
 
+
 	def vnckey(self, *options):
 		pass
 
 
-	def openvpnlogin(self, brute_file):
+	def openvpnlogin(self, host, username, password, brute_file):
 
-		print brute_file
-		#openvpn_cmd = ['%s --config %s --auth-user-pass %s'% (self.openvpn_path, self.args.config, brute_file_name)]	
-		#proc = subprocess.Popen(cmd, shell = True, stdout = subprocess.PIPE)
-
-		#for result in iter(proc.stdout.readline, ''):
-		#	print result
+		openvpn_cmd = "%s --config %s --auth-user-pass %s"% (self.openvpn_path, self.args.config, brute_file)
+		proc = subprocess.Popen(shlex.split(openvpn_cmd), shell=False, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 		
+		for line in iter(proc.stdout.readline, ''):
+			if re.search(self.vpn_success, line):
+				print "OK: %s:%s:%s"% (host, username, password)
+				os.kill(proc.pid, signal.SIGQUIT)
+
 
 	def openvpn(self):
 
@@ -117,7 +128,7 @@ class Levye:
 			timeout = self.args.timeout	
 		
 		if not os.path.isfile(self.args.config):
-			print >> sys.stderr, "Config File %s Must Be a File !!!"% self.args.config
+			print >> sys.stderr, "Config File %s Doesn't Exists !!!"% self.args.config
 			sys.exit(1)
 
 		if self.args.thread is not None:
@@ -131,31 +142,32 @@ class Levye:
 		brute_file = tempfile.NamedTemporaryFile(mode='w+t')
 		brute_file_name = brute_file.name
 		
-		if os.path.isfile(self.args.username):
-			for user in open(self.args.username, "r").read().splitlines():
-				if os.path.isfile(self.args.passwd):			
-					for password in open(self.args.passwd, "r").read().splitlines():
+		for ip in self.ip_list:
+			if os.path.isfile(self.args.username):
+				for user in open(self.args.username, "r").read().splitlines():
+					if os.path.isfile(self.args.passwd):			
+						for password in open(self.args.passwd, "r").read().splitlines():
+							brute_file.write(user + "\n")
+							brute_file.write(password + "\n")
+							brute_file.seek(0)
+							pool.add_task(self.openvpnlogin, ip, user, password, brute_file_name, )
+					else:
 						brute_file.write(user + "\n")
+						brute_file.write(self.args.passwd + "\n")
+						brute_file.seek(0)
+						pool.add_task(self.openvpnlogin, ip, user, self.args.passwd, brute_file_name)
+			else:
+				if os.path.isfile(self.args.passwd):
+					for password in open(self.args.passwd, "r").read().splitlines():
+						brute_file.write(self.args.username + "\n")	
 						brute_file.write(password + "\n")
 						brute_file.seek(0)
-						pool.add_task(self.openvpnlogin, brute_file_name)
+						pool.add_task(self.openvpnlogin, ip, self.args.username, password, brute_file_name)
 				else:
-					brute_file.write(user + "\n")
+					brute_file.write(self.args.username + "\n")
 					brute_file.write(self.args.passwd + "\n")
 					brute_file.seek(0)
-					pool.add_task(self.openvpnlogin, brute_file_name)
-		else:
-			if os.path.isfile(self.args.passwd):
-				for password in open(self.args.passwd, "r").read().splitlines():
-					brute_file.write(user + "\n")	
-					brute_file.write(password + "\n")
-					brute_file.seek(0)
-					pool.add_task(self.openvpnlogin, brute_file_name)
-			else:
-				brute_file.write(self.args.username + "\n")
-				brute_file.write(self.args.passwd + "\n")
-				brute_file.seek(0)
-				pool.add_task(self.openvpnlogin, brute_file_name)
+					pool.add_task(self.openvpnlogin, ip, self.args.username, self.args.passwd, brute_file_name)
 		
 		pool.wait_completion()	
 		
