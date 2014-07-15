@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# TO DO 
+# Log success attempt into levye.out using csv format.
+# Log levye operations into levye.log. 
+
 __VERSION__ = '0.1'
 __AUTHOR__ = 'Galkan'
 __DATE__ = '15.07.2014'
