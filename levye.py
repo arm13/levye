@@ -23,23 +23,33 @@ class AddressAction(argparse.Action):
   
         def __call__(self, parser, args, values, option = None):
 
-                args.options = values
-
-		if args.brute == "sshkey" and args.key_file is None:
-			print >> sys.stderr, "Please specify key file for sshkey brute force"
-			sys.exit(1)                	
+		if args.brute == "sshkey":
+			if args.key_file is None:
+				print >> sys.stderr, "Please specify key file for sshkey brute force"
+				sys.exit(1)
+			elif args.username is None:
+				print >> sys.stderr, "Please specify Username/Username File"
+				sys.exit(1)                	
 		elif args.brute == "openvpn": 
 			if args.config is None:
 				print >> sys.stderr, "Please specify Configuration File"
 				sys.exit(1)                		
+			elif args.passwd is None:
+				print >> sys.stderr, "Please specify Passwd/Passwd File"
+				sys.exit(1)
+			elif args.username is None:
+				print >> sys.stderr, "Please specify Username/Username File"
+				sys.exit(1)
+		elif args.brute == "rdp":	
 			if args.passwd is None:
 				print >> sys.stderr, "Please specify Passwd File"
-				sys.exit(1)			
-		elif args.brute == "rdp":	
-			pass
+				sys.exit(1)                		
 		elif args.brute == "vnckey":
-			pass
-
+			if args.passwd is None:
+				print >> sys.stderr, "Please specify Passwd File"
+				sys.exit(1)                		
+			
+			
 
 class Levye:
 		
@@ -50,22 +60,23 @@ class Levye:
 		self.openvpn_path = "/usr/sbin/openvpn"		
 		self.vpn_failure = re.compile("SIGTERM\[soft,auth-failure\] received, process exiting")
 		self.vpn_success = re.compile("Initialization Sequence Completed")
+
 		self.xfreerdp_path = "/usr/bin/xfreerdp"
 		self.rdp_success = "Authentication only, exit status 0"
+		
 		self.vncviewer_path = "/usr/bin/vncviewer"
 		self.vnc_success = "Authentication successful"
-		self.vnc_failure = "Authentication failed"
-
-		description = "Description ..."
+	
+		description = "Levye is a brute force tool which is support sshkey, vnckey, rdp, openvpn."
                 usage = "Usage: use --help for futher information"
                 parser = argparse.ArgumentParser(description = description, usage = usage)
-                parser.add_argument('-b', '--brute', dest = 'brute', help = 'Brute Force Type', required = True)
-		parser.add_argument('-s', '--server', dest = 'server', action = 'store', help = 'Host File', required = True)                
-		parser.add_argument('-u', '--user', dest = 'username', action = 'store', help = 'User File')		
+                parser.add_argument('-b', '--brute', dest = 'brute', help = 'Brute Force Type', choices = self.services.keys(), required = True)
+		parser.add_argument('-s', '--server', dest = 'server', action = 'store', help = 'Server/Server File', required = True)                
+		parser.add_argument('-u', '--user', dest = 'username', action = 'store', help = 'Username/Username File')		
 		parser.add_argument('-n', '--number', dest = 'thread', action = 'store', help = 'Thread Number', default = 5, type = int)		
 		parser.add_argument('-l', '--log', dest = 'log_file', action = 'store', help = 'Log File', type = file)				
                 parser.add_argument('-o', '--output', dest = 'output', action = 'store', help = 'Output Directory', type = file)		
-		parser.add_argument('-c', '--passwd', dest = 'passwd', action = 'store', help = 'Password File')
+		parser.add_argument('-c', '--passwd', dest = 'passwd', action = 'store', help = 'Password/Password File')
 		parser.add_argument('-t', '--timeout', dest = 'timeout', action = 'store', help = 'Timeout Value', default = 2, type = int)
 		parser.add_argument('-p', '--port', dest = 'port', action = 'store', help = 'Service Port Number', type = int)		
 		parser.add_argument('-k', '--key', dest = 'key_file', action = 'store', help = 'Key File')
@@ -77,27 +88,21 @@ class Levye:
 		except Exception, err:
 			print >> sys.stderr, err
 			sys.exit(1)	
-
-			
-		if not self.args.brute in self.services.keys():
-                        print >> sys.stderr, "%s is not valid service. Please use one of %s "% (self.args.brute, self.services.keys())
-                        sys.exit(1)
 	
-		
 		self.ip_list = []
 		try:
 			iprange = IpRange()
 			for ip in iprange.iprange(self.args.server):
 				self.ip_list.append(ip)
 		except:
-			print >> sys.stderr, "Not Valid Ip Address !!!"
+			print >> sys.stderr, "Please use IP/CIDR notation. <192.168.37.37/32, 192.168.1.0/24>"
 			sys.exit(1)
 	
 
 
 	def signal_handler(self, signal, frame):
 
-        	print('Exiting ...')
+        	print('Bye ...')
         	sys.exit(37)	
 
 
@@ -112,41 +117,34 @@ class Levye:
 				break
 
 
-
 	def vnckey(self, *options):
 		
 		port = 5900
 		
 		if not os.path.exists(self.vncviewer_path):
-			print >> sys.stderr, "Vncviewer: %s path doesn't exists on the system !!!"% (self.vncviewer_path)
+			print >> sys.stderr, "vncviewer: %s path doesn't exists on the system !!!"% (self.vncviewer_path)
 			sys.exit(1)
 
 		if self.args.port is not None:
 			port = self.args.port
 				
-		if self.args.timeout is not None:
-			timeout = self.args.timeout	
 		
-		if self.args.thread is not None:
-			try:	
-				pool = ThreadPool(int(self.args.thread))
-			except Exception, err:
-				print >> sys.stderr, err
-				sys.exit(1)
-
-		if not self.args.passwd:
-			print >> sys.stderr, "Password must be specified !!!"
-			sys.exit(1)
-
 		if not os.path.isfile(self.args.passwd):
 			print >> sys.stderr, "Password must be file !!!"
 			sys.exit(1) 				
 
-			
+		try:	
+			pool = ThreadPool(int(self.args.thread))
+		except Exception, err:
+			print >> sys.stderr, err
+			sys.exit(1)
+
+		
 		for ip in self.ip_list:
 			pool.add_task(self.vnclogin, ip, port, self.args.passwd)
 					
 		pool.wait_completion()
+
 
 
 	def rdplogin(self, ip, user, password, port):
@@ -165,25 +163,18 @@ class Levye:
 		port = 3389
 
 		if not os.path.exists(self.xfreerdp_path):
-			print >> sys.stderr, "Xfreerdp: %s path doesn't exists on the system !!!"% (self.xfreerdp_path)
+			print >> sys.stderr, "xfreerdp: %s path doesn't exists on the system !!!"% (self.xfreerdp_path)
 			sys.exit(1)
 
 		if self.args.port is not None:
 			port = self.args.port
-				
-		if self.args.timeout is not None:
-			timeout = self.args.timeout	
 		
-		if not self.args.passwd:
-			print >> sys.stderr, "Password file must be specified !!!"
+		
+		try:	
+			pool = ThreadPool(int(self.args.thread))
+		except Exception, err:
+			print >> sys.stderr, err
 			sys.exit(1)
-
-		if self.args.thread is not None:
-			try:	
-				pool = ThreadPool(int(self.args.thread))
-			except Exception, err:
-				print >> sys.stderr, err
-				sys.exit(1)
 
 
 		for ip in self.ip_list:
@@ -221,35 +212,18 @@ class Levye:
 		port = 443
 
 		if not os.path.exists(self.openvpn_path):
-			print >> sys.stderr, "Openvpn: %s path doesn't exists on the system !!!"% (self.openvpn_path)
+			print >> sys.stderr, "openvpn: %s path doesn't exists on the system !!!"% (self.openvpn_path)
 			sys.exit(1)
 
 		if self.args.port is not None:
 			port = self.args.port
-				
-		if self.args.timeout is not None:
-			timeout = self.args.timeout	
-		
-		if not os.path.isfile(self.args.config):
-			print >> sys.stderr, "Config File %s Doesn't Exists !!!"% self.args.config
-			sys.exit(1)
-
-		if not self.args.passwd:
-			print >> sys.stderr, "Password file must be specified !!!"
-			sys.exit(1)
-
-		if not self.args.username:
-			print >> sys.stderr, "Username file must be specified !!!"
-			sys.exit(1)
 
 
-		if self.args.thread is not None:
-			try:	
-				pool = ThreadPool(int(self.args.thread))
-			except Exception, err:
-				print >> sys.stderr, err
-				sys.exit(1)	
-
+		try:	
+			pool = ThreadPool(int(self.args.thread))
+		except Exception, err:
+			print >> sys.stderr, err
+			sys.exit(1)	
 
 		brute_file = tempfile.NamedTemporaryFile(mode='w+t')
 		brute_file_name = brute_file.name
@@ -283,6 +257,7 @@ class Levye:
 		
 		pool.wait_completion()	
 		
+
 	
 	def sshlogin(self,ip,port,user,keyfile,timeout):	
 	
@@ -299,24 +274,15 @@ class Levye:
 	def sshkey(self):
 
 		port = 22
-		
+				
 		if self.args.port is not None:
 			port = self.args.port
 		
-		if self.args.timeout is not None:
-			timeout = self.args.timeout	
-
-		if not self.args.username:
-			print >> sys.stderr, "Username file must be specified !!!"
+		try:
+			pool = ThreadPool(self.args.thread)
+		except Exception, err:
+			print >> sys.stderr, err
 			sys.exit(1)
-
-		
-		if self.args.thread is not None:
-			try:
-				pool = ThreadPool(self.args.thread)
-			except Exception, err:
-				print >> sys.stderr, err
-				sys.exit(1)
 	
 
 		for ip in self.ip_list:
@@ -326,19 +292,20 @@ class Levye:
 						for dirname, dirnames, filenames in os.walk(self.args.key_file):
 							for keyfile in filenames:
 								keyfile_path = self.args.key_file + "/" + keyfile
-								pool.add_task(self.sshlogin, ip, port, user, keyfile_path, timeout)
+								pool.add_task(self.sshlogin, ip, port, user, keyfile_path, self.args.timeout)
 					else:
-						pool.add_task(self.sshlogin, ip, port, user, self.args.key_file, timeout)
+						pool.add_task(self.sshlogin, ip, port, user, self.args.key_file, self.args.timeout)
 			else:
 				if os.path.isdir(self.args.key_file):
 					for dirname, dirnames, filenames in os.walk(self.args.key_file):
 						for keyfile in filenames:
 							keyfile_path = self.args.key_file + "/" + keyfile						
-							pool.add_task(self.sshlogin, ip, port, self.args.username, keyfile_path, timeout)
+							pool.add_task(self.sshlogin, ip, port, self.args.username, keyfile_path, self.args.timeout)
 				else:
-					pool.add_task(self.sshlogin, ip, port, self.args.username, self.args.key_file, timeout)
+					pool.add_task(self.sshlogin, ip, port, self.args.username, self.args.key_file, self.args.timeout)
 			
 		pool.wait_completion()
+
 
 
 	def run(self, brute_type):
@@ -346,7 +313,7 @@ class Levye:
 		signal.signal(signal.SIGINT, self.signal_handler)
 
 		if not brute_type in self.services.keys():
-			print >> sys.stderr, "%s is not valid service. Please use one of %s "% (brute_type,self.services.keys())
+			print >> sys.stderr, "%s is not valid service. Please select %s "% (brute_type,self.services.keys())
 			sys.exit(1)
 		else:
 			self.services[brute_type]()		
