@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+__VERSION__ = '0.1'
+__AUTHOR__ = 'Galkan'
+__DATE__ = '15.07.2014'
+
 try:
 	import os
 	import re
