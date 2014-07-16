@@ -1,6 +1,6 @@
-__VERSION__ = '0.2'
+__VERSION__ = '0.1'
 __AUTHOR__ = 'Galkan'
-__DATE__ = '03.12.2013'
+__DATE__ = '15.07.2014'
 
 
 try:
