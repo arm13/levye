@@ -13,8 +13,8 @@ try:
 	import paramiko
 	import argparse
 	import tempfile
+	import datetime	
 	import subprocess
-	import datetime
 	from lib.threadpool import ThreadPool
 	from lib.iprange import IpRange
 except ImportError,e:
