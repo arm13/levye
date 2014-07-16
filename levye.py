@@ -190,7 +190,7 @@ class Levye:
 				print result[:-1]
 				self.fd_output_file.write(result)				
 				break
-			elif re.searh(self.rdp_display_error, line):
+			elif re.search(self.rdp_display_error, line):
 				print >> sys.stderr, "Please look at the Readme %s"% self.levye_readme
 				break		
 		
