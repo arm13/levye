@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 
-# TO DO 
-# Log success attempt into levye.out using csv format.
-# Log levye operations into levye.log. 
-
 __VERSION__ = '0.1'
 __AUTHOR__ = 'Galkan'
 __DATE__ = '15.07.2014'
@@ -18,6 +14,7 @@ try:
 	import argparse
 	import tempfile
 	import subprocess
+	import datetime
 	from lib.threadpool import ThreadPool
 	from lib.iprange import IpRange
 except ImportError,e:
@@ -82,21 +79,36 @@ class Levye:
 		parser.add_argument('-s', '--server', dest = 'server', action = 'store', help = 'Server/Server File', required = True)                
 		parser.add_argument('-u', '--user', dest = 'username', action = 'store', help = 'Username/Username File')		
 		parser.add_argument('-n', '--number', dest = 'thread', action = 'store', help = 'Thread Number', default = 5, type = int)		
-		parser.add_argument('-l', '--log', dest = 'log_file', action = 'store', help = 'Log File')				
-                parser.add_argument('-o', '--output', dest = 'output', action = 'store', help = 'Output File')		
-		parser.add_argument('-c', '--passwd', dest = 'passwd', action = 'store', help = 'Password/Password File')
+		parser.add_argument('-l', '--log', dest = 'log_file', action = 'store', help = 'Log File', metavar = 'FILE', default = "levye.log")				
+                parser.add_argument('-o', '--output', dest = 'output', action = 'store', help = 'Output File', metavar = 'FILE', default = "levye.out")		
+		parser.add_argument('-c', '--passwd', dest = 'passwd', action = 'store', help = 'Password/Password File', metavar = 'FILE')
 		parser.add_argument('-t', '--timeout', dest = 'timeout', action = 'store', help = 'Timeout Value', default = 2, type = int)
 		parser.add_argument('-p', '--port', dest = 'port', action = 'store', help = 'Service Port Number', type = int)		
 		parser.add_argument('-k', '--key', dest = 'key_file', action = 'store', help = 'Key File')
 		parser.add_argument('-m', '--config', dest = 'config', action = 'store', help = 'Configuration File')
 
 		parser.add_argument('options', nargs='*', action = AddressAction)
+
 		try:
                 	self.args = parser.parse_args()
 		except Exception, err:
 			print >> sys.stderr, err
 			sys.exit(1)	
 	
+
+		for levye_file in self.args.log_file, self.args.output:
+			if not os.path.exists(levye_file):
+				open(levye_file, 'w').close()	
+		
+		now = datetime.datetime.now()
+		start_time = "START TIME: " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n"
+		print start_time[:-1]
+		
+		self.fd_log_file = open(self.args.log_file, "a")
+		self.fd_output_file = open(self.args.output, "a")
+
+		self.fd_log_file.write(start_time)
+		
 		self.ip_list = []
 		try:
 			iprange = IpRange()
@@ -116,12 +128,19 @@ class Levye:
 
 	def vnclogin(self, ip, port, passwd_file):	
 
+		print ip, port, passwd_file
 		vnc_cmd = "%s -passwd %s %s:%s"% (self.vncviewer_path, passwd_file, ip, port)
 		proc = subprocess.Popen(shlex.split(vnc_cmd), shell=False, stdout = subprocess.PIPE, stderr = subprocess.PIPE)		
 
+		brute =  "LOG: VNC: " + ip + ":" + str(port) + ":" + passwd_file + ":" + "\n"
+		self.fd_log_file.write(brute)
 		for line in iter(proc.stderr.readline, ''):
 			if re.search(self.vnc_success, line):
-				print "OK: %s:%s:%s"% (ip, port, passwd_file)
+				now = datetime.datetime.now()
+				os.kill(proc.pid, signal.SIGQUIT)
+				result = "SUCCESS," + now.strftime("%Y-%m-%d %H:%M:%S") + "," + "VNC," + ip + "," + str(port) + "," + passwd_file + "\n"
+				print result[:-1]
+				self.fd_output_file.write(result)				
 				break
 
 
@@ -160,9 +179,14 @@ class Levye:
 		rdp_cmd = "%s /sec:nla /p:%s /u:%s /port:%s /v:%s +auth-only /cert-ignore"% (self.xfreerdp_path, password, user, port, ip)
 		proc = subprocess.Popen(shlex.split(rdp_cmd), shell=False, stdout = subprocess.PIPE, stderr = subprocess.PIPE)		
 
+		brute =  "LOG: RDP: " + ip + ":" + user + ":" + password + ":" + str(port) + "\n"
+		self.fd_log_file.write(brute)
 		for line in iter(proc.stderr.readline, ''):
 			if re.search(self.rdp_success, line):
-				print "OK: %s:%s:%s"% (ip,user,password)
+				now = datetime.datetime.now()
+				result = "SUCCESS," + now.strftime("%Y-%m-%d %H:%M:%S") + "," + "RDP," + ip + "," + user + "," + password + "," + str(port) + "\n"
+				print result[:-1]
+				self.fd_output_file.write(result)				
 				break
 		
 
@@ -209,10 +233,16 @@ class Levye:
 		openvpn_cmd = "%s --config %s --auth-user-pass %s"% (self.openvpn_path, self.args.config, brute_file)
 		proc = subprocess.Popen(shlex.split(openvpn_cmd), shell=False, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 		
+		brute =  "LOG: OPENVPN: " + host + ":" + username + ":" + password + ":" + brute_file + "\n"
+		self.fd_log_file.write(brute)
 		for line in iter(proc.stdout.readline, ''):
 			if re.search(self.vpn_success, line):
-				print "OK: %s:%s:%s"% (host, username, password)
+				now = datetime.datetime.now()
+				result = "SUCCESS," + now.strftime("%Y-%m-%d %H:%M:%S") + "," + "OPENVPN," + host + "," + username + "," + password + "," + brute_file + "\n"
+				print result[:-1]
+				self.fd_output_file.write(result)				
 				os.kill(proc.pid, signal.SIGQUIT)
+
 
 
 	def openvpn(self):
@@ -272,9 +302,14 @@ class Levye:
 		ssh = paramiko.SSHClient()	
 		ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 		
+		brute =  "LOG: SSH: " + ip + ":" + str(port) + ":" + user + ":" + keyfile + ":" + str(timeout) + "\n"
+		self.fd_log_file.write(brute)
 		try:
 			ssh.connect(ip, port, username=user, password=None, pkey=None, key_filename=keyfile, timeout=timeout, allow_agent=False, look_for_keys=False)
-			print "OK: %s:%s:%s:%s:%s"% (ip,port,user,keyfile,timeout)
+			now = datetime.datetime.now()
+			result = "SUCCESS," + now.strftime("%Y-%m-%d %H:%M:%S") + "," + "SSH," + ip + "," + str(port) + "," + user + "," + keyfile + "\n"
+			print result[:-1]
+			self.fd_output_file.write(result)
 		except Exception ,err:
 			pass
 			
@@ -315,7 +350,6 @@ class Levye:
 		pool.wait_completion()
 
 
-
 	def run(self, brute_type):
 
 		signal.signal(signal.SIGINT, self.signal_handler)
@@ -324,7 +358,17 @@ class Levye:
 			print >> sys.stderr, "%s is not valid service. Please select %s "% (brute_type,self.services.keys())
 			sys.exit(1)
 		else:
-			self.services[brute_type]()		
+			self.services[brute_type]()
+
+			now = datetime.datetime.now()
+			stop_time = "STOP TIME: " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n"
+			print stop_time[:-1]
+
+			self.fd_log_file.write(stop_time)	
+
+			self.fd_output_file.close()		
+			self.fd_log_file.close()
+
 
 ##
 ### Main 
