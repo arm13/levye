@@ -132,7 +132,7 @@ class Levye:
 		vnc_cmd = "%s -passwd %s %s:%s"% (self.vncviewer_path, passwd_file, ip, port)
 		proc = subprocess.Popen(shlex.split(vnc_cmd), shell=False, stdout = subprocess.PIPE, stderr = subprocess.PIPE)		
 
-		brute =  "LOG: VNC: " + ip + ":" + str(port) + ":" + passwd_file + ":" + "\n"
+		brute =  "LOG: VNC: " + ip + ":" + str(port) + ":" + passwd_file  + "\n"
 		self.fd_log_file.write(brute)
 		for line in iter(proc.stderr.readline, ''):
 			if re.search(self.vnc_success, line):
