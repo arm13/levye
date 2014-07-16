@@ -69,7 +69,7 @@ class Levye:
 
 		self.xfreerdp_path = "/usr/bin/xfreerdp"
 		self.rdp_success = "Authentication only, exit status 0"
-		self.rdp_display_error = "Please check that the $DISPLAY environment variable is properly set."	
+		self.rdp_display_error = "Please check that the \$DISPLAY environment variable is properly set."	
 		
 		self.vncviewer_path = "/usr/bin/vncviewer"
 		self.vnc_success = "Authentication successful"
