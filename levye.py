@@ -235,7 +235,7 @@ class Levye:
 
 	def openvpnlogin(self, host, username, password, brute_file):
 
-		openvpn_cmd = "%s --config %s --auth-user-pass %s --remote %s %s"% (self.openvpn_path, self.args.config, brute_file, host, port)
+		openvpn_cmd = "%s --config %s --auth-user-pass %s --remote %s %s"% (self.openvpn_path, self.args.config, brute_file, host, self.args.port)
 		proc = subprocess.Popen(shlex.split(openvpn_cmd), shell=False, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 		
 		brute =  "LOG: OPENVPN: " + host + ":" + username + ":" + password + ":" + brute_file + "\n"
