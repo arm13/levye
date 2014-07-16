@@ -371,7 +371,7 @@ class Levye:
 
 
 ##
-### Main 
+### Main , go Galkan go go go ...
 ##	
 
 if __name__ == "__main__":
