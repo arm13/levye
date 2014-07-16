@@ -191,7 +191,7 @@ class Levye:
 				self.fd_output_file.write(result)				
 				break
 			elif re.search(self.rdp_display_error, line):
-				print >> sys.stderr, "Please check that the \$DISPLAY environment variable is properly set.Check Readme %s"% self.levye_readme
+				print >> sys.stderr, "Please check \$DISPLAY is properly set. See readme %s"% self.levye_readme
 				break		
 		
 
