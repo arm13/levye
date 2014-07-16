@@ -269,19 +269,20 @@ class Levye:
 			print >> sys.stderr, err
 			sys.exit(1)	
 
-		brute_file = tempfile.NamedTemporaryFile(mode='w+t')
-		brute_file_name = brute_file.name
-		
 		for ip in self.ip_list:
 			if os.path.isfile(self.args.username):
 				for user in open(self.args.username, "r").read().splitlines():
 					if os.path.isfile(self.args.passwd):			
 						for password in open(self.args.passwd, "r").read().splitlines():
+							brute_file = tempfile.NamedTemporaryFile(mode='w+t')
+							brute_file_name = brute_file.name
 							brute_file.write(user + "\n")
 							brute_file.write(password + "\n")
 							brute_file.seek(0)
 							pool.add_task(self.openvpnlogin, ip, user, password, brute_file_name)
 					else:
+						brute_file = tempfile.NamedTemporaryFile(mode='w+t')
+						brute_file_name = brute_file.name
 						brute_file.write(user + "\n")
 						brute_file.write(self.args.passwd + "\n")
 						brute_file.seek(0)
@@ -289,11 +290,15 @@ class Levye:
 			else:
 				if os.path.isfile(self.args.passwd):
 					for password in open(self.args.passwd, "r").read().splitlines():
+						brute_file = tempfile.NamedTemporaryFile(mode='w+t')
+						brute_file_name = brute_file.name
 						brute_file.write(self.args.username + "\n")	
 						brute_file.write(password + "\n")
 						brute_file.seek(0)
 						pool.add_task(self.openvpnlogin, ip, self.args.username, password, brute_file_name)
 				else:
+					brute_file = tempfile.NamedTemporaryFile(mode='w+t')
+					brute_file_name = brute_file.name
 					brute_file.write(self.args.username + "\n")
 					brute_file.write(self.args.passwd + "\n")
 					brute_file.seek(0)
