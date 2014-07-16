@@ -68,6 +68,7 @@ class Levye:
 
 		self.xfreerdp_path = "/usr/bin/xfreerdp"
 		self.rdp_success = "Authentication only, exit status 0"
+		self.rdp_display_error = "Please check that the $DISPLAY environment variable is properly set."	
 		
 		self.vncviewer_path = "/usr/bin/vncviewer"
 		self.vnc_success = "Authentication successful"
@@ -188,6 +189,9 @@ class Levye:
 				print result[:-1]
 				self.fd_output_file.write(result)				
 				break
+			elif re.searh(self.rdp_display_error, line):
+				print >> sys.stderr, "Please look at the Readme %s"%
+				break		
 		
 
 	def rdp(self):
