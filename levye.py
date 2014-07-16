@@ -61,6 +61,7 @@ class Levye:
 	def __init__(self):
 		
 		self.services = {"sshkey":self.sshkey,"rdp":self.rdp, "openvpn":self.openvpn, "vnckey":self.vnckey}
+		self.levye_readme = "https://github.com/galkan/levye/blob/master/README.md"
 
 		self.openvpn_path = "/usr/sbin/openvpn"		
 		self.vpn_failure = re.compile("SIGTERM\[soft,auth-failure\] received, process exiting")
@@ -190,7 +191,7 @@ class Levye:
 				self.fd_output_file.write(result)				
 				break
 			elif re.searh(self.rdp_display_error, line):
-				print >> sys.stderr, "Please look at the Readme %s"%
+				print >> sys.stderr, "Please look at the Readme %s"% self.levye_readme
 				break		
 		
 
