@@ -65,6 +65,8 @@ class Main:
 		self.openvpn_path = "/usr/sbin/openvpn"		
 		self.vpn_failure = re.compile("SIGTERM\[soft,auth-failure\] received, process exiting")
 		self.vpn_success = re.compile("Initialization Sequence Completed")
+		self.vpn_remote_regex = re.compile("remote\s[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\s[0-9]{1,3}")
+		self.vpn_warning = "Warning !!! Both \"remote\" options were used at the same time. But command line \"remote\" options will be used !!!"
 
 		self.xfreerdp_path = "/usr/bin/xfreerdp"
 		self.rdp_success = "Authentication only, exit status 0"
@@ -101,6 +103,16 @@ class Main:
 			if not os.path.exists(levye_file):
 				open(levye_file, 'w').close()	
 		
+		self.ip_list = []
+		try:
+			iprange = IpRange()
+			for ip in iprange.iprange(self.args.server):
+				self.ip_list.append(ip)
+		except:
+			print >> sys.stderr, "Please use IP/CIDR notation. <192.168.37.37/32, 192.168.1.0/24>"
+			sys.exit(1)
+
+
 		now = datetime.datetime.now()
 		start_time = "START TIME: " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n"
 		print start_time[:-1]
@@ -110,15 +122,6 @@ class Main:
 
 		self.fd_log_file.write(start_time)
 		
-		self.ip_list = []
-		try:
-			iprange = IpRange()
-			for ip in iprange.iprange(self.args.server):
-				self.ip_list.append(ip)
-		except:
-			print >> sys.stderr, "Please use IP/CIDR notation. <192.168.37.37/32, 192.168.1.0/24>"
-			sys.exit(1)
-	
 
 
 	def signal_handler(self, signal, frame):
@@ -267,6 +270,11 @@ class Main:
 			print >> sys.stderr, err
 			sys.exit(1)	
 
+		for config_line in open(self.args.config, "r"):
+			if re.search(self.vpn_remote_regex, config_line):
+				print self.vpn_warning
+		sys.exit(1)	
+
 		for ip in self.ip_list:
 			if os.path.isfile(self.args.username):
 				for user in open(self.args.username, "r").read().splitlines():
@@ -377,4 +385,3 @@ class Main:
 
 			self.fd_output_file.close()		
 			self.fd_log_file.close()
-
