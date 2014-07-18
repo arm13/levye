@@ -270,7 +270,7 @@ class Main:
 		for config_line in open(self.args.config, "r"):
 			if re.search(self.vpn_remote_regex, config_line):
 				print self.vpn_warning
-		sys.exit(1)	
+				sys.exit(1)	
 
 		for ip in self.ip_list:
 			if os.path.isfile(self.args.username):
