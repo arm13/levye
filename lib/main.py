@@ -44,11 +44,7 @@ class AddressAction(argparse.Action):
 			elif args.username is None:
 				print >> sys.stderr, "Please specify Username/Username File"
 				sys.exit(1)
-		elif args.brute == "rdp":	
-			if args.passwd is None:
-				print >> sys.stderr, "Please specify Passwd File"
-				sys.exit(1)                		
-		elif args.brute == "vnckey":
+		elif (args.brute == "rdp" or args.brute == "vnckey") and args.passwd is None:	
 			if args.passwd is None:
 				print >> sys.stderr, "Please specify Passwd File"
 				sys.exit(1)                		
