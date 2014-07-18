@@ -61,7 +61,7 @@ class Main:
 		self.openvpn_path = "/usr/sbin/openvpn"		
 		self.vpn_failure = re.compile("SIGTERM\[soft,auth-failure\] received, process exiting")
 		self.vpn_success = re.compile("Initialization Sequence Completed")
-		self.vpn_remote_regex = re.compile("remote\s[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\s[0-9]{1,3}")
+		self.vpn_remote_regex = re.compile("\s+remote\s[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\s[0-9]{1,3}")
 		self.vpn_warning = "Warning !!! Both \"remote\" options were used at the same time. But command line \"remote\" options will be used !!!"
 
 		self.xfreerdp_path = "/usr/bin/xfreerdp"
@@ -268,9 +268,7 @@ class Main:
 			sys.exit(1)	
 
 		for config_line in open(self.args.config, "r"):
-			if re.search(";|\s+;", config_line):
-				continue	
-			else re.search(self.vpn_remote_regex, config_line):
+			if re.search(self.vpn_remote_regex, config_line):
 				print self.vpn_warning
 		sys.exit(1)	
 
