@@ -182,7 +182,6 @@ class Main:
 		brute =  "LOG: RDP: " + ip + ":" + user + ":" + password + ":" + str(port) + "\n"
 		self.fd_log_file.write(brute)
 		for line in iter(proc.stderr.readline, ''):
-			print line	
 			if re.search(self.rdp_success, line):
 				now = datetime.datetime.now()
 				result = "SUCCESS," + now.strftime("%Y-%m-%d %H:%M:%S") + "," + "RDP," + ip + "," + user + "," + password + "," + str(port) + "\n"
@@ -241,6 +240,7 @@ class Main:
 		brute =  "LOG: OPENVPN: " + host + ":" + username + ":" + password + ":" + brute_file + "\n"
 		self.fd_log_file.write(brute)
 		for line in iter(proc.stdout.readline, ''):
+			print line
 			if re.search(self.vpn_success, line):
 				print "ESLESTI: %s"% password
 				now = datetime.datetime.now()
