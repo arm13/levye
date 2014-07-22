@@ -241,7 +241,7 @@ class Main:
 		self.fd_log_file.write(brute)
 		for line in iter(proc.stdout.readline, ''):
 			if re.search(self.vpn_success, line):
-				print "ESLESTI"
+				print "ESLESTI: %s"% password
 				now = datetime.datetime.now()
 				result = "SUCCESS," + now.strftime("%Y-%m-%d %H:%M:%S") + "," + "OPENVPN," + host + "," + username + "," + password + "," + brute_file + "\n"
 				print result[:-1]
