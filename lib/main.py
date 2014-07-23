@@ -244,7 +244,7 @@ class Main:
                 for line in iter(proc.stdout.readline, ''):
                         if re.search(self.vpn_success, line):
                                 now = datetime.datetime.now()
-                                result = "SUCCESS," + now.strftime("%Y-%m-%d %H:%M:%S") + "," + "OPENVPN," + host + "," + username + "," + password "\n"
+                                result = "SUCCESS," + now.strftime("%Y-%m-%d %H:%M:%S") + "," + "OPENVPN," + host + "," + username + "," + password + "\n"
                                 print result[:-1]
                                 self.fd_output_file.write(result)
                                 os.kill(proc.pid, signal.SIGQUIT)
