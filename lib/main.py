@@ -233,83 +233,78 @@ class Main:
 
 	def openvpnlogin(self, host, username, password, brute_file):
 
-		openvpn_cmd = "%s --config %s --auth-user-pass %s --remote %s %s"% (self.openvpn_path, self.args.config, brute_file, host, self.args.port)
-		#print openvpn_cmd
-		proc = subprocess.Popen(shlex.split(openvpn_cmd), shell=False, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+		brute_file_name = brute_file.name
+                brute_file.seek(0)
+
+                openvpn_cmd = "%s --config %s --auth-user-pass %s --remote %s %s"% (self.openvpn_path, self.args.config, brute_file_name, host, port)
+                proc = subprocess.Popen(shlex.split(openvpn_cmd), shell=False, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+
+                brute =  "LOG: OPENVPN: " + host + ":" + username + ":" + password + ":" + brute_file_name + "\n"
+                self.fd_log_file.write(brute)
+                for line in iter(proc.stdout.readline, ''):
+                        if re.search(self.vpn_success, line):
+                                now = datetime.datetime.now()
+                                result = "SUCCESS," + now.strftime("%Y-%m-%d %H:%M:%S") + "," + "OPENVPN," + host + "," + username + "," + password "\n"
+                                print result[:-1]
+                                self.fd_output_file.write(result)
+                                os.kill(proc.pid, signal.SIGQUIT)
+
+                brute_file.close()
+
+
 		
-		brute =  "LOG: OPENVPN: " + host + ":" + username + ":" + password + ":" + brute_file + "\n"
-		self.fd_log_file.write(brute)
-		for line in iter(proc.stdout.readline, ''):
-			print line
-			if re.search(self.vpn_success, line):
-				print "ESLESTI: %s"% password
-				now = datetime.datetime.now()
-				result = "SUCCESS," + now.strftime("%Y-%m-%d %H:%M:%S") + "," + "OPENVPN," + host + "," + username + "," + password + "," + brute_file + "\n"
-				print result[:-1]
-				self.fd_output_file.write(result)				
-				os.kill(proc.pid, signal.SIGQUIT)
-
-
-
 	def openvpn(self):
 
-		port = 443
+                port = 443
 
-		if not os.path.exists(self.openvpn_path):
-			print >> sys.stderr, "openvpn: %s path doesn't exists on the system !!!"% (self.openvpn_path)
-			sys.exit(1)
+                if not os.path.exists(self.openvpn_path):
+                        print >> sys.stderr, "openvpn: %s path doesn't exists on the system !!!"% (self.openvpn_path)
+                        sys.exit(1)
 
-		if self.args.port is not None:
-			port = self.args.port
+                if self.args.port is not None:
+                        port = self.args.port
 
 
-		try:	
-			pool = ThreadPool(int(self.args.thread))
-		except Exception, err:
-			print >> sys.stderr, err
-			sys.exit(1)	
+                try:
+                        pool = ThreadPool(int(self.args.thread))
+                except Exception, err:
+                        print >> sys.stderr, err
+                        sys.exit(1)
 
-		for config_line in open(self.args.config, "r"):
-			if re.search(self.vpn_remote_regex, config_line):
-				print self.vpn_warning
-				sys.exit(1)	
+                for config_line in open(self.args.config, "r"):
+                        if re.search(self.vpn_remote_regex, config_line):
+                                print self.vpn_warning
+                                sys.exit(1)
 
-		for ip in self.ip_list:
-			if os.path.isfile(self.args.username):
-				for user in open(self.args.username, "r").read().splitlines():
-					if os.path.isfile(self.args.passwd):			
-						for password in open(self.args.passwd, "r").read().splitlines():
-							brute_file = tempfile.NamedTemporaryFile(mode='w+t')
-							brute_file_name = brute_file.name
-							brute_file.write(user + "\n")
-							brute_file.write(password + "\n")
-							brute_file.seek(0)
-							pool.add_task(self.openvpnlogin, ip, user, password, brute_file_name)
-					else:
-						brute_file = tempfile.NamedTemporaryFile(mode='w+t')
-						brute_file_name = brute_file.name
-						brute_file.write(user + "\n")
-						brute_file.write(self.args.passwd + "\n")
-						brute_file.seek(0)
-						pool.add_task(self.openvpnlogin, ip, user, self.args.passwd, brute_file_name)
-			else:
-				if os.path.isfile(self.args.passwd):
-					for password in open(self.args.passwd, "r").read().splitlines():
-						brute_file = tempfile.NamedTemporaryFile(mode='w+t')
-						brute_file_name = brute_file.name
-						brute_file.write(self.args.username + "\n")	
-						brute_file.write(password + "\n")
-						brute_file.seek(0)
-						pool.add_task(self.openvpnlogin, ip, self.args.username, password, brute_file_name)
-				else:
-					brute_file = tempfile.NamedTemporaryFile(mode='w+t')
-					brute_file_name = brute_file.name
-					brute_file.write(self.args.username + "\n")
-					brute_file.write(self.args.passwd + "\n")
-					brute_file.seek(0)
-					pool.add_task(self.openvpnlogin, ip, self.args.username, self.args.passwd, brute_file_name)
-		
-		pool.wait_completion()	
+                for ip in self.ip_list:
+                        if os.path.isfile(self.args.username):
+                                for user in open(self.args.username, "r").read().splitlines():
+                                        if os.path.isfile(self.args.passwd):
+                                                for password in open(self.args.passwd, "r").read().splitlines():
+                                                        brute_file = tempfile.NamedTemporaryFile(mode='w+t')
+                                                        brute_file.write(user + "\n")
+                                                        brute_file.write(password + "\n")
+                                                        pool.add_task(self.openvpnlogin, ip, user, password, brute_file, port)
+                                        else:
+                                                brute_file = tempfile.NamedTemporaryFile(mode='w+t')
+                                                brute_file.write(user + "\n")
+                                                brute_file.write(self.args.passwd + "\n")
+                                                pool.add_task(self.openvpnlogin, ip, user, self.args.passwd, brute_file, port)
+                        else:
+                                if os.path.isfile(self.args.passwd):
+                                        for password in open(self.args.passwd, "r").read().splitlines():
+                                                brute_file = tempfile.NamedTemporaryFile(mode='w+t')
+                                                brute_file.write(self.args.username + "\n")
+                                                brute_file.write(password + "\n")
+                                                pool.add_task(self.openvpnlogin, ip, self.args.username, password, brute_file, port)
+                                else:
+                                        brute_file = tempfile.NamedTemporaryFile(mode='w+t')
+                                        brute_file.write(self.args.username + "\n")
+                                        brute_file.write(self.args.passwd + "\n")
+                                        pool.add_task(self.openvpnlogin, ip, self.args.username, self.args.passwd, brute_file, port)
+
+                pool.wait_completion()
+	
 		
 
 	
