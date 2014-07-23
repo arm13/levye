@@ -231,7 +231,7 @@ class Main:
 			
 
 
-	def openvpnlogin(self, host, username, password, brute_file):
+	def openvpnlogin(self, host, username, password, brute_file, port):
 
 		brute_file_name = brute_file.name
                 brute_file.seek(0)
