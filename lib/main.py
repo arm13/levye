@@ -1,3 +1,4 @@
+
 __VERSION__ = '0.1'
 __AUTHOR__ = 'Galkan'
 __DATE__ = '16.07.2014'
@@ -20,7 +21,6 @@ except ImportError,e:
         import sys
         sys.stdout.write("%s\n" %e)
         sys.exit(1)
-
 
 
 class AddressAction(argparse.Action):
