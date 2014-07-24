@@ -128,7 +128,6 @@ class Main:
 
 	def vnclogin(self, ip, port, passwd_file):	
 
-		#print ip, port, passwd_file
 		vnc_cmd = "%s -passwd %s %s:%s"% (self.vncviewer_path, passwd_file, ip, port)
 		proc = subprocess.Popen(shlex.split(vnc_cmd), shell=False, stdout = subprocess.PIPE, stderr = subprocess.PIPE)		
 
