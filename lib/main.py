@@ -29,26 +29,26 @@ class AddressAction(argparse.Action):
 
 		if args.brute == "sshkey":
 			if args.key_file is None:
-				print >> sys.stderr, "Please specify key file for sshkey brute force"
+				print >> sys.stderr, """usage: Usage: use --help for futher information\nlevye.py: error: argument -k/--key: expected one argument """
 				sys.exit(1)
 			elif args.username is None:
-				print >> sys.stderr, "Please specify Username/Username File"
+				print >> sys.stderr, """usage: Usage: use --help for futher information\nlevye.py: error: argument -u/--user: expected one argument """
 				sys.exit(1)                	
 		elif args.brute == "openvpn": 
 			if args.config is None:
-				print >> sys.stderr, "Please specify Configuration File"
+				print >> sys.stderr, """usage: Usage: use --help for futher information\nlevye.py: error: argument -m/--config: expected one argument """
 				sys.exit(1)                		
 			elif args.passwd is None:
-				print >> sys.stderr, "Please specify Passwd/Passwd File"
+				print >> sys.stderr, """usage: Usage: use --help for futher information\nlevye.py: error: argument -c/--passwd: expected one argument """
 				sys.exit(1)
 			elif args.username is None:
-				print >> sys.stderr, "Please specify Username/Username File"
+				print >> sys.stderr, """usage: Usage: use --help for futher information\nlevye.py: error: argument -u/--user: expected one argument """
 				sys.exit(1)
 		elif (args.brute == "rdp" or args.brute == "vnckey") and args.passwd is None:	
 			if args.passwd is None:
-				print >> sys.stderr, "Please specify Passwd File"
+				print >> sys.stderr, """usage: Usage: use --help for futher information\nlevye.py: error: argument -c/--passwd: expected one argument """
 				sys.exit(1)                		
-			
+
 			
 
 class Main:
