@@ -1,8 +1,8 @@
-LEVYE - Brute force tool for penetration testers. 
-=====
-
-What is it?
+## LEVYE - Brute force tool for penetration testers. 
 ---
+
+### What is it?
+
 **Levye** (crowbar) is brute forcing tool that can be used during penetration tests. It is developed to support protocols that are not currently supported by thc-hydra and other popular brute forcing tools. 
 Currently **Levye** supports  
 - OpenVPN
@@ -10,22 +10,22 @@ Currently **Levye** supports
 + VNC key authentication
 * Remote Desktop Protocol (RDP) with NLA support
 
-Features
-----
+### Features
+
 - Python based
 - Multi-threaded
 - Dont have dependencies to external programs like Nessus or Metasploit 
 - Tested on Kali Linux 
 
-Prerequisites
-----
+### Prerequisites
+
 - Kali Linux
 - Python 2.7+
 - OpenVPN
 - XfreeRDP
 - VNCviewer
 
-#### Installation
+### Installation
 
 First you shoud install prerequisities  
 ```
@@ -38,7 +38,7 @@ git clone https://github.com/galkan/levye
 ```
 
 
-#### Options
+### Options
 
 **-h, --help**  
 &nbsp;&nbsp;&nbsp;&nbsp;                        show this help message and exit  
@@ -87,7 +87,7 @@ git clone https://github.com/galkan/levye
 ./levye.py -b openvpn -s 172.16.1.100/32 -m server.ovpn -c pass.txt -u user.txt -k server.ca.crt -p 443  
 ```
 
-#### Example output
+### Example output
 
 cat levye.out 
 
