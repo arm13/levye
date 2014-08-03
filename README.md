@@ -1,5 +1,5 @@
 ![Levye](https://github.com/galkan/levye/blob/master/images/levye_small.png)
-##LEVYE - Brute force tool for penetration testers. 
+
 
 
 ### What is it?
