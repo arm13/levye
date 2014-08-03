@@ -120,12 +120,6 @@ class Main:
 		
 
 
-	def signal_handler(self, signal, frame):
-
-        	print('Bye ...')
-        	sys.exit(37)	
-
-
 	def vnclogin(self, ip, port, passwd_file):	
 
 		vnc_cmd = "%s -passwd %s %s:%s"% (self.vncviewer_path, passwd_file, ip, port)
@@ -378,3 +372,10 @@ class Main:
 
 			self.fd_output_file.close()		
 			self.fd_log_file.close()
+
+
+
+	def signal_handler(self, signal, frame):
+
+        	print('Bye ...')
+        	sys.exit(37)	
