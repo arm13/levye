@@ -1,4 +1,4 @@
-![Levye](https://github.com/galkan/levye/blob/master/images/levye.png)
+![Levye](https://github.com/galkan/levye/blob/master/images/levye_small.png)
 ##LEVYE - Brute force tool for penetration testers. 
 
 
